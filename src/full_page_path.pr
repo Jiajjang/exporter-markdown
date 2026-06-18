@@ -1,2 +1,2 @@
 {* Generate documentation page URL *}
-docs/{{ replace(ds.documentationPageById(pageId).title, " ", "-") }}.md
+docs/{{ slugify(ds.documentationPageById(pageId).title) }}.md
