@@ -1,2 +1,2 @@
 {* Generate documentation page URL *}
-{{ pageUrl(ds.documentationPageById(pageId), "") }}
+docs/{{ ds.documentationPageById(pageId).title | slugify }}.md
