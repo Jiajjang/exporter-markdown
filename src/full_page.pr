@@ -1,2 +1,4 @@
-{* Fetch page detail and convert the page to markdown, then export the markdown *}
-{{ ds.documentationPageToMarkdown(ds.documentationPageById(pageId))}}
+{* Fetch page, extract only Usage Guidelines section, clean entities *}
+# {{ ds.documentationPageById(pageId).title }}
+
+{{ cleanEntities(extractSection(ds.documentationPageToMarkdown(ds.documentationPageById(pageId)), "USAGE GUIDELINES")) }}
