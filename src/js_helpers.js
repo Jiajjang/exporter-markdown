@@ -6,3 +6,43 @@ Pulsar.registerFunction("slugify", function(text) {
         .replace(/[^a-z0-9]+/g, "-")  // replaces spaces, &, :, () etc.
         .replace(/^-+|-+$/g, "");      // trims leading/trailing dashes
 });
+
+Pulsar.registerFunction("extractSection", function(markdown, sectionHeading) {
+    const lines = markdown.split('\n');
+    let capturing = false;
+    let result = [];
+    
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        
+        // Start capturing when we hit the target heading
+        if (line.trim().toLowerCase() === ('# ' + sectionHeading).toLowerCase() ||
+            line.trim().toLowerCase() === ('## ' + sectionHeading).toLowerCase()) {
+            capturing = true;
+            result.push(line);
+            continue;
+        }
+        
+        // Stop capturing when we hit the next top-level heading
+        if (capturing && /^#{1,2} /.test(line) && line !== result[0]) {
+            break;
+        }
+        
+        if (capturing) {
+            result.push(line);
+        }
+    }
+    
+    return result.join('\n').trim();
+});
+
+Pulsar.registerFunction("cleanEntities", function(text) {
+    return text
+        .replace(/&hyphen;/g, '-')
+        .replace(/&amp;/g, '&')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&nbsp;/g, ' ')
+        .replace(/&semi;/g, ';')
+        .replace(/&colon;/g, ':');
+});
