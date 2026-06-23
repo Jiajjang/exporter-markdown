@@ -3,5 +3,10 @@
         "targets_ci": true,
         "targets_documentation": true,
         "context": "documentationPage"
+    },
+    "full_page_path.pr": {
+        "targets_ci": true,
+        "targets_documentation": true,
+        "context": "documentationPage"
     }
 }

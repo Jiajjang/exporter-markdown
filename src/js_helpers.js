@@ -149,17 +149,18 @@ Pulsar.registerFunction("slugify", function (text) {
 
 Pulsar.registerFunction("getPagePath", function (page) {
     function toSlug(text) {
-        if (!text) return 'untitled';
-        return text.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+        if (!text) return "untitled";
+        return text
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, "-")
+            .replace(/^-+|-+$/g, "");
     }
 
-    // ONLY exclude true top-level section pages, not category groups
-    const topLevelExcluded = ["home", "introduction", "foundations", "foundation", "release-notes"];
+    const topLevelExcluded = ["home", "introduction", "foundations", "foundation", "components", "templates"];
 
-    const titleSlug = toSlug(page.title);
-
-    // Walk up the full parent chain
-    // Structure: Root > COMPONENTS > Content Navigations > Accordion
+    // Walk full parent chain bottom-up
+    // For "Enterprise" under "Attribute Chips" under "Actions & Interactions" under "COMPONENTS":
+    // parents = ["components", "actions-and-interactions", "attribute-chips"]
     let parents = [];
     let current = page.parent;
     while (current) {
@@ -168,27 +169,29 @@ Pulsar.registerFunction("getPagePath", function (page) {
         }
         current = current.parent;
     }
-    // parents = ["components", "content-navigations"] for Accordion
 
-    // If page itself is a top-level excluded page
-    if (topLevelExcluded.includes(titleSlug)) {
-        return "_excluded/" + titleSlug + "-" + page.persistentId.substring(0, 6) + ".md";
+    // Remove the top-level section (e.g. "components") from parents
+    if (parents.length > 0 && topLevelExcluded.includes(parents[0])) {
+        parents.shift();
     }
+    // parents = ["actions-and-interactions", "attribute-chips"]
 
-    // If the top-level parent is a section like "components" or "foundations", skip it
-    // Use the second-level parent as the folder instead
-    const topSection = parents[0]; // e.g. "components"
-    const categoryFolder = parents[1]; // e.g. "content-navigations"
+    const titleSlug = toSlug(page.title);
 
-    if (categoryFolder) {
-        // 3-level deep: docs/content-navigations/accordion.md
-        return "docs/" + categoryFolder + "/" + titleSlug + ".md";
-    } else if (topSection && !["components", "foundations", "foundation"].includes(topSection)) {
-        // 2-level deep with non-excluded parent: docs/parent/page.md
-        return "docs/" + topSection + "/" + titleSlug + ".md";
-    } else {
-        // Page is a category group itself (e.g. "Content Navigations") - exclude it
+    if (parents.length === 0) {
+        // Top-level page itself, exclude it
         return "_excluded/" + titleSlug + "-" + page.persistentId.substring(0, 6) + ".md";
+    } else if (parents.length === 1) {
+        // Category page (e.g. "Actions & Interactions") — exclude
+        return "_excluded/" + titleSlug + "-" + page.persistentId.substring(0, 6) + ".md";
+    } else if (parents.length === 2) {
+        // Component variant page: folder = category, filename = component name
+        // e.g. docs/actions-and-interactions/attribute-chips.md
+        // Use PARENT title as filename, GRANDPARENT as folder
+        return "docs/" + parents[0] + "/" + parents[1] + ".md";
+    } else {
+        // Deeper nesting fallback
+        return "docs/" + parents[parents.length - 2] + "/" + parents[parents.length - 1] + ".md";
     }
 });
 
