@@ -1,2 +1,2 @@
 {* Generate documentation page URL *}
-{% set path = getPagePath(ds.documentationPageById(pageId)) %}{% if path != "null" and path %}{{ path }}{% endif %}
+{{ getPagePath(ds.documentationPageById(pageId)) }}

@@ -148,34 +148,30 @@ Pulsar.registerFunction("slugify", function (text) {
 });
 
 Pulsar.registerFunction("getPagePath", function (page) {
-    const title = page.title;
-    const parent = page.parent;
-
     function toSlug(text) {
-        return text
-            .toLowerCase()
-            .replace(/[^a-z0-9]+/g, "-")
-            .replace(/^-+|-+$/g, "");
+        if (!text) return 'untitled';
+        return text.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
     }
 
-    // Exclude specific top-level sections
-    const excludedSections = ["home", "foundations", "foundation"];
+    const excludedSections = ["home", "foundations", "foundation", "components", "templates", "enterprise", "introduction"];
+    const titleSlug = toSlug(page.title);
 
-    // Exclude if page itself is in the excluded list
-    if (excludedSections.includes(toSlug(title))) {
-        return null;
+    // Route excluded pages to _excluded folder — just ignore these in the zip
+    if (excludedSections.includes(titleSlug)) {
+        return "_excluded/" + titleSlug + ".md";
     }
 
-    // Exclude if page's parent is in the excluded list
-    if (parent && parent.title && excludedSections.includes(toSlug(parent.title))) {
-        return null;
+    // Walk up parent chain
+    let parentTitle = null;
+    if (page.parent && page.parent.title && !page.parent.isRoot) {
+        parentTitle = page.parent.title;
     }
 
-    if (!parent || !parent.title) {
-        return "docs/" + toSlug(title) + ".md";
+    if (!parentTitle || excludedSections.includes(toSlug(parentTitle))) {
+        return "docs/" + titleSlug + ".md";
     }
 
-    return "docs/" + toSlug(parent.title) + "/" + toSlug(title) + ".md";
+    return "docs/" + toSlug(parentTitle) + "/" + titleSlug + ".md";
 });
 
 Pulsar.registerFunction("extractSection", function (markdown, sectionHeading) {
