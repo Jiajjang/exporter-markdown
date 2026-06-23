@@ -156,12 +156,11 @@ Pulsar.registerFunction("getPagePath", function (page) {
     const excludedSections = ["home", "foundations", "foundation", "components", "templates", "enterprise", "introduction"];
     const titleSlug = toSlug(page.title);
 
-    // Route excluded pages to _excluded folder — just ignore these in the zip
+    // Route excluded pages to _excluded folder — use persistentId to guarantee uniqueness
     if (excludedSections.includes(titleSlug)) {
-        return "_excluded/" + titleSlug + ".md";
+        return "_excluded/" + titleSlug + "-" + page.persistentId.substring(0, 6) + ".md";
     }
 
-    // Walk up parent chain
     let parentTitle = null;
     if (page.parent && page.parent.title && !page.parent.isRoot) {
         parentTitle = page.parent.title;
