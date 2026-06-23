@@ -153,24 +153,43 @@ Pulsar.registerFunction("getPagePath", function (page) {
         return text.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
     }
 
-    const excludedSections = ["home", "foundations", "foundation", "components", "templates", "enterprise", "introduction"];
+    // ONLY exclude true top-level section pages, not category groups
+    const topLevelExcluded = ["home", "introduction", "foundations", "foundation", "release-notes"];
+
     const titleSlug = toSlug(page.title);
 
-    // Route excluded pages to _excluded folder — use persistentId to guarantee uniqueness
-    if (excludedSections.includes(titleSlug)) {
+    // Walk up the full parent chain
+    // Structure: Root > COMPONENTS > Content Navigations > Accordion
+    let parents = [];
+    let current = page.parent;
+    while (current) {
+        if (current.title && !current.isRoot) {
+            parents.unshift(toSlug(current.title));
+        }
+        current = current.parent;
+    }
+    // parents = ["components", "content-navigations"] for Accordion
+
+    // If page itself is a top-level excluded page
+    if (topLevelExcluded.includes(titleSlug)) {
         return "_excluded/" + titleSlug + "-" + page.persistentId.substring(0, 6) + ".md";
     }
 
-    let parentTitle = null;
-    if (page.parent && page.parent.title && !page.parent.isRoot) {
-        parentTitle = page.parent.title;
-    }
+    // If the top-level parent is a section like "components" or "foundations", skip it
+    // Use the second-level parent as the folder instead
+    const topSection = parents[0]; // e.g. "components"
+    const categoryFolder = parents[1]; // e.g. "content-navigations"
 
-    if (!parentTitle || excludedSections.includes(toSlug(parentTitle))) {
-        return "docs/" + titleSlug + ".md";
+    if (categoryFolder) {
+        // 3-level deep: docs/content-navigations/accordion.md
+        return "docs/" + categoryFolder + "/" + titleSlug + ".md";
+    } else if (topSection && !["components", "foundations", "foundation"].includes(topSection)) {
+        // 2-level deep with non-excluded parent: docs/parent/page.md
+        return "docs/" + topSection + "/" + titleSlug + ".md";
+    } else {
+        // Page is a category group itself (e.g. "Content Navigations") - exclude it
+        return "_excluded/" + titleSlug + "-" + page.persistentId.substring(0, 6) + ".md";
     }
-
-    return "docs/" + toSlug(parentTitle) + "/" + titleSlug + ".md";
 });
 
 Pulsar.registerFunction("extractSection", function (markdown, sectionHeading) {
