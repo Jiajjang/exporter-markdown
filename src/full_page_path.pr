@@ -1,2 +1,3 @@
 {* Generate documentation page URL *}
-docs/{{ slugify(ds.documentationPageById(pageId).parent.title) }}/{{ slugify(ds.documentationPageById(pageId).title) }}.md
+{{ getPagePath(ds.documentationPageById(pageId)) }}
+
