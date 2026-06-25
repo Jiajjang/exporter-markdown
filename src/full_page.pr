@@ -2,3 +2,6 @@
 # {{ ds.documentationPageById(pageId).title }}
 
 {{ cleanEntities(extractSection(ds.documentationPageToMarkdown(ds.documentationPageById(pageId)), "USAGE GUIDELINES")) }}
+{{ cleanEntities(extractSection(ds.documentationPageToMarkdown(ds.documentationPageById(pageId)), "CONTENT GUIDELINES")) }}
+{{ cleanEntities(flattenTableToSections(extractSection(ds.documentationPageToMarkdown(ds.documentationPageById(pageId)), "BEHAVIOUR (INTERACTIONS)"))) }}
+

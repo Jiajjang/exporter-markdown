@@ -234,3 +234,67 @@ Pulsar.registerFunction("cleanEntities", function (text) {
         .replace(/&semi;/g, ";")
         .replace(/&colon;/g, ":");
 });
+
+Pulsar.registerFunction("flattenTableToSections", function (markdown) {
+    const lines = markdown.split("\n");
+    let output = [];
+    let headers = [];
+    let tableRows = [];
+    let inTable = false;
+
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim();
+
+        if (!line.startsWith("|")) {
+            // Flush table if we were in one
+            if (inTable && tableRows.length > 0) {
+                // Row 0 = "Column 1, Column 2..." — skip it
+                // Row 1 = real headers (Input Handling, Picker Activation...)
+                // Row 2+ = content rows
+                if (tableRows.length > 1) {
+                    headers = tableRows[1]; // actual column names
+                    for (let r = 2; r < tableRows.length; r++) {
+                        tableRows[r].forEach((cell, idx) => {
+                            if (!cell || !headers[idx]) return;
+                            output.push(`\n### ${headers[idx]}`);
+                            const bullets = cell
+                                .split(/<br\s*\/?>/i)
+                                .map(b => b.replace(/^[-•]\s*/, "").trim())
+                                .filter(Boolean);
+                            bullets.forEach(b => output.push(`- ${b}`));
+                        });
+                    }
+                }
+                tableRows = [];
+                inTable = false;
+            }
+            output.push(lines[i]);
+            continue;
+        }
+
+        // Skip separator rows
+        if (/^\|[\s\-|]+\|$/.test(line)) continue;
+
+        inTable = true;
+        const cells = line.split("|").slice(1, -1).map(c => c.trim());
+        tableRows.push(cells);
+    }
+
+    // Flush remaining table
+    if (inTable && tableRows.length > 1) {
+        headers = tableRows[1];
+        for (let r = 2; r < tableRows.length; r++) {
+            tableRows[r].forEach((cell, idx) => {
+                if (!cell || !headers[idx]) return;
+                output.push(`\n### ${headers[idx]}`);
+                const bullets = cell
+                    .split(/<br\s*\/?>/i)
+                    .map(b => b.replace(/^[-•]\s*/, "").trim())
+                    .filter(Boolean);
+                bullets.forEach(b => output.push(`- ${b}`));
+            });
+        }
+    }
+
+    return output.join("\n");
+});
