@@ -1,0 +1,4 @@
+{* Export full foundations page content *}
+# {{ ds.documentationPageById(pageId).title }}
+
+{{ cleanEntities(ds.documentationPageToMarkdown(ds.documentationPageById(pageId))) }}

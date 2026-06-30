@@ -138,7 +138,9 @@
     })();
 })();
 
+
 // ---- Custom functions ----
+
 
 Pulsar.registerFunction("slugify", function (text) {
     return text
@@ -147,20 +149,16 @@ Pulsar.registerFunction("slugify", function (text) {
         .replace(/^-+|-+$/g, "");
 });
 
+
+// Used by full_page_path.pr — handles COMPONENTS only
 Pulsar.registerFunction("getPagePath", function (page) {
     function toSlug(text) {
         if (!text) return "untitled";
-        return text
-            .toLowerCase()
-            .replace(/[^a-z0-9]+/g, "-")
-            .replace(/^-+|-+$/g, "");
+        return text.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
     }
 
-    const topLevelExcluded = ["home", "introduction", "foundations", "foundation", "components", "templates"];
+    const topSections = ["components", "foundations", "foundation", "home", "introduction", "templates", "enterprise"];
 
-    // Walk full parent chain bottom-up
-    // For "Enterprise" under "Attribute Chips" under "Actions & Interactions" under "COMPONENTS":
-    // parents = ["components", "actions-and-interactions", "attribute-chips"]
     let parents = [];
     let current = page.parent;
     while (current) {
@@ -170,30 +168,96 @@ Pulsar.registerFunction("getPagePath", function (page) {
         current = current.parent;
     }
 
-    // Remove the top-level section (e.g. "components") from parents
-    if (parents.length > 0 && topLevelExcluded.includes(parents[0])) {
+    const titleSlug = toSlug(page.title);
+    const topSection = parents[0];
+
+    // Remove top-level section from parents array
+    if (parents.length > 0 && topSections.includes(parents[0])) {
         parents.shift();
     }
-    // parents = ["actions-and-interactions", "attribute-chips"]
+
+    const isFoundations = topSection === "foundations" || topSection === "foundation";
+    const isComponents = topSection === "components";
+
+    // Foundations handled entirely by getFoundationsPagePath / foundations_page.pr
+    if (isFoundations) {
+        return "_excluded/skip-" + titleSlug + "-" + page.persistentId.substring(0, 6) + ".md";
+    }
+
+    // Exclude top-level section pages themselves
+    if (parents.length === 0 && topSections.includes(titleSlug)) {
+        return "_excluded/" + titleSlug + "-" + page.persistentId.substring(0, 6) + ".md";
+    }
+
+    if (isComponents) {
+        if (parents.length === 0) {
+            // Category group page itself — exclude
+            return "_excluded/" + titleSlug + "-" + page.persistentId.substring(0, 6) + ".md";
+        } else if (parents.length === 1) {
+            // Category group under Components — exclude
+            return "_excluded/" + titleSlug + "-" + page.persistentId.substring(0, 6) + ".md";
+        } else if (parents.length === 2) {
+            // Component variant page: docs/category/component.md
+            return "docs/" + parents[0] + "/" + parents[1] + ".md";
+        } else {
+            return "docs/" + parents[parents.length - 2] + "/" + parents[parents.length - 1] + ".md";
+        }
+    }
+
+    // Anything else (Introduction, Release Notes etc.) — exclude
+    return "_excluded/" + titleSlug + "-" + page.persistentId.substring(0, 6) + ".md";
+});
+
+
+// Used by foundations_page_path.pr — handles FOUNDATIONS only
+Pulsar.registerFunction("getFoundationsPagePath", function (page) {
+    function toSlug(text) {
+        if (!text) return "untitled";
+        return text.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+    }
+
+    const topSections = ["components", "foundations", "foundation", "home", "introduction", "templates", "enterprise"];
+
+    let parents = [];
+    let current = page.parent;
+    while (current) {
+        if (current.title && !current.isRoot) {
+            parents.unshift(toSlug(current.title));
+        }
+        current = current.parent;
+    }
 
     const titleSlug = toSlug(page.title);
+    const topSection = parents[0];
+
+    if (parents.length > 0 && topSections.includes(parents[0])) {
+        parents.shift();
+    }
+
+    const isFoundations = topSection === "foundations" || topSection === "foundation";
+
+    // Not a foundations page — skip, handled by getPagePath
+    if (!isFoundations) {
+        return "_excluded/skip-" + titleSlug + "-" + page.persistentId.substring(0, 6) + ".md";
+    }
+
+    // Exclude the top-level FOUNDATIONS group page itself
+    if (parents.length === 0 && topSections.includes(titleSlug)) {
+        return "_excluded/skip-" + titleSlug + "-" + page.persistentId.substring(0, 6) + ".md";
+    }
 
     if (parents.length === 0) {
-        // Top-level page itself, exclude it
-        return "_excluded/" + titleSlug + "-" + page.persistentId.substring(0, 6) + ".md";
+        // Direct child of FOUNDATIONS: Typography, Colours, Iconography
+        return "docs/foundations/" + titleSlug + ".md";
     } else if (parents.length === 1) {
-        // Category page (e.g. "Actions & Interactions") — exclude
-        return "_excluded/" + titleSlug + "-" + page.persistentId.substring(0, 6) + ".md";
-    } else if (parents.length === 2) {
-        // Component variant page: folder = category, filename = component name
-        // e.g. docs/actions-and-interactions/attribute-chips.md
-        // Use PARENT title as filename, GRANDPARENT as folder
-        return "docs/" + parents[0] + "/" + parents[1] + ".md";
+        // Child of a foundations sub-group: Layouts > Spacing, Effects > Drop Shadow
+        return "docs/foundations/" + parents[0] + "/" + titleSlug + ".md";
     } else {
-        // Deeper nesting fallback
-        return "docs/" + parents[parents.length - 2] + "/" + parents[parents.length - 1] + ".md";
+        // Deeper nesting — use last two segments
+        return "docs/foundations/" + parents[parents.length - 1] + "/" + titleSlug + ".md";
     }
 });
+
 
 Pulsar.registerFunction("extractSection", function (markdown, sectionHeading) {
     const lines = markdown.split("\n");
@@ -224,6 +288,7 @@ Pulsar.registerFunction("extractSection", function (markdown, sectionHeading) {
     return result.join("\n").trim();
 });
 
+
 Pulsar.registerFunction("cleanEntities", function (text) {
     return text
         .replace(/&hyphen;/g, "-")
@@ -235,10 +300,10 @@ Pulsar.registerFunction("cleanEntities", function (text) {
         .replace(/&colon;/g, ":");
 });
 
+
 Pulsar.registerFunction("flattenTableToSections", function (markdown) {
     const lines = markdown.split("\n");
     let output = [];
-    let headers = [];
     let tableRows = [];
     let inTable = false;
 
@@ -246,13 +311,12 @@ Pulsar.registerFunction("flattenTableToSections", function (markdown) {
         const line = lines[i].trim();
 
         if (!line.startsWith("|")) {
-            // Flush table if we were in one
             if (inTable && tableRows.length > 0) {
-                // Row 0 = "Column 1, Column 2..." — skip it
-                // Row 1 = real headers (Input Handling, Picker Activation...)
+                // Row 0 = "Column 1, Column 2..." — skip
+                // Row 1 = real headers
                 // Row 2+ = content rows
                 if (tableRows.length > 1) {
-                    headers = tableRows[1]; // actual column names
+                    const headers = tableRows[1];
                     for (let r = 2; r < tableRows.length; r++) {
                         tableRows[r].forEach((cell, idx) => {
                             if (!cell || !headers[idx]) return;
@@ -282,7 +346,7 @@ Pulsar.registerFunction("flattenTableToSections", function (markdown) {
 
     // Flush remaining table
     if (inTable && tableRows.length > 1) {
-        headers = tableRows[1];
+        const headers = tableRows[1];
         for (let r = 2; r < tableRows.length; r++) {
             tableRows[r].forEach((cell, idx) => {
                 if (!cell || !headers[idx]) return;

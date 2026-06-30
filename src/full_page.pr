@@ -1,7 +1,8 @@
-{* Fetch page, extract only Usage Guidelines section, clean entities *}
-# {{ ds.documentationPageById(pageId).title }}
+{* Fetch page, extract only guidelines sections, clean entities *}
+# {{ ds.documentationPageById(pageId).parent.title }} — {{ ds.documentationPageById(pageId).title }}
 
-{{ cleanEntities(extractSection(ds.documentationPageToMarkdown(ds.documentationPageById(pageId)), "USAGE GUIDELINES")) }}
-{{ cleanEntities(extractSection(ds.documentationPageToMarkdown(ds.documentationPageById(pageId)), "CONTENT GUIDELINES")) }}
-{{ cleanEntities(flattenTableToSections(extractSection(ds.documentationPageToMarkdown(ds.documentationPageById(pageId)), "BEHAVIOUR (INTERACTIONS)"))) }}
+**Category:** {{ ds.documentationPageById(pageId).parent.parent.title }}
 
+{{ (cleanEntities(extractSection(ds.documentationPageToMarkdown(ds.documentationPageById(pageId)), "USAGE GUIDELINES"))) }}
+{{ (cleanEntities(extractSection(ds.documentationPageToMarkdown(ds.documentationPageById(pageId)), "CONTENT GUIDELINES"))) }}
+{{ (cleanEntities(flattenTableToSections(extractSection(ds.documentationPageToMarkdown(ds.documentationPageById(pageId)), "BEHAVIOUR (INTERACTIONS)")))) }}

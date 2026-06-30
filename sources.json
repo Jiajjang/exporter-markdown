@@ -8,5 +8,10 @@
         "targets_ci": true,
         "targets_documentation": true,
         "context": "documentationPage"
+    },
+    "foundations_page.pr": {
+        "targets_ci": true,
+        "targets_documentation": true,
+        "context": "documentationPage"
     }
 }
